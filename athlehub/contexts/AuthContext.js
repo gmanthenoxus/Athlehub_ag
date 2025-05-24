@@ -71,12 +71,14 @@ export const AuthProvider = ({ children }) => {
 
       // Update local state
       if (data.user) {
+        console.log('Sign in successful, setting user:', data.user);
         setUser(data.user);
         setSession(data);
       }
 
       return { data, error: null };
     } catch (error) {
+      console.error('Sign in error:', error);
       return { data: null, error };
     }
   };

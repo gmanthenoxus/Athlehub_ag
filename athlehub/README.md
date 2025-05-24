@@ -94,6 +94,12 @@ The app is currently connected to a pre-configured Supabase database with:
 - Sports table (pre-populated with 5 sports)
 - Matches table with proper relationships
 - Row Level Security (RLS) enabled
+- Performance optimizations (indexes and optimized RLS policies)
+
+### Database Performance Optimizations:
+To apply performance improvements to your Supabase database:
+1. Run the SQL from `supabase/performance_optimizations.sql` in the Supabase SQL editor
+2. This adds indexes for foreign keys and optimizes RLS policies for better performance
 
 ## Next Steps (Future Enhancements)
 

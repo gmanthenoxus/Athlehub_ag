@@ -20,21 +20,37 @@ export default function MatchHistoryScreen() {
         return;
       }
 
-      // Fetch matches with sport information
-      const { data, error } = await supabase
+      // First fetch all sports to create a lookup map
+      const { data: sportsData, error: sportsError } = await supabase
+        .from('sports')
+        .select('*');
+
+      if (sportsError) throw sportsError;
+
+      // Create a sports lookup map
+      const sportsMap = {};
+      (sportsData || []).forEach(sport => {
+        sportsMap[sport.id] = sport;
+      });
+
+      // Fetch matches for the current user
+      const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
-        .select(`
-          *,
-          sports:sport_id (name, icon)
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('match_date', { ascending: false });
 
-      if (error) throw error;
+      if (matchesError) throw matchesError;
 
-      setMatches(data || []);
+      // Combine matches with sport information
+      const matchesWithSports = (matchesData || []).map(match => ({
+        ...match,
+        sports: sportsMap[match.sport_id] || { name: 'Unknown Sport', icon: 'trophy' }
+      }));
+
+      setMatches(matchesWithSports);
     } catch (error) {
-      console.error('Error fetching matches:', error.message);
+      console.error('Error fetching matches:', error.message || error);
       // Fallback to empty array on error
       setMatches([]);
     } finally {

@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS public.matches (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create indexes for foreign keys to improve query performance
+CREATE INDEX IF NOT EXISTS idx_matches_user_id ON public.matches(user_id);
+CREATE INDEX IF NOT EXISTS idx_matches_sport_id ON public.matches(sport_id);
+CREATE INDEX IF NOT EXISTS idx_matches_match_date ON public.matches(match_date DESC);
+
 -- Insert default sports
 INSERT INTO public.sports (name, icon) VALUES
   ('Basketball', 'basketball'),
@@ -44,28 +49,28 @@ ON CONFLICT (name) DO NOTHING;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies
-CREATE POLICY "Public profiles are viewable by everyone" 
+-- Profiles policies (optimized for performance)
+CREATE POLICY "Public profiles are viewable by everyone"
   ON public.profiles FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert their own profile" 
-  ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile"
+  ON public.profiles FOR INSERT WITH CHECK ((SELECT auth.uid()) = id);
 
-CREATE POLICY "Users can update their own profile" 
-  ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles FOR UPDATE USING ((SELECT auth.uid()) = id);
 
--- Matches policies
-CREATE POLICY "Matches are viewable by everyone" 
+-- Matches policies (optimized for performance)
+CREATE POLICY "Matches are viewable by everyone"
   ON public.matches FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert their own matches" 
-  ON public.matches FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own matches"
+  ON public.matches FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 
-CREATE POLICY "Users can update their own matches" 
-  ON public.matches FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update their own matches"
+  ON public.matches FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 
-CREATE POLICY "Users can delete their own matches" 
-  ON public.matches FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own matches"
+  ON public.matches FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- Create functions for handling timestamps
 CREATE OR REPLACE FUNCTION public.handle_updated_at()

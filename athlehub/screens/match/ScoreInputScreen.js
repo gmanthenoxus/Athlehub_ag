@@ -30,20 +30,25 @@ export default function ScoreInputScreen({ route, navigation }) {
     try {
       setSaving(true);
 
+      console.log('Current user:', user);
+      console.log('Sport data:', sport);
+
       // Save match to database
+      const matchData = {
+        user_id: user.id,
+        sport_id: sport.id,
+        team_a_name: teamA,
+        team_b_name: teamB,
+        team_a_score: scoreA,
+        team_b_score: scoreB,
+        match_date: new Date().toISOString(),
+      };
+
+      console.log('Attempting to save match:', matchData);
+
       const { error } = await supabase
         .from('matches')
-        .insert([
-          {
-            user_id: user.id,
-            sport_id: sport.id,
-            team_a_name: teamA,
-            team_b_name: teamB,
-            team_a_score: scoreA,
-            team_b_score: scoreB,
-            match_date: new Date(),
-          },
-        ]);
+        .insert([matchData]);
 
       if (error) throw error;
 
@@ -53,11 +58,17 @@ export default function ScoreInputScreen({ route, navigation }) {
         [
           {
             text: 'View History',
-            onPress: () => navigation.navigate('Matches'),
+            onPress: () => {
+              // Navigate back to main app and then to Matches tab
+              navigation.navigate('Main', { screen: 'Matches' });
+            },
           },
           {
             text: 'Home',
-            onPress: () => navigation.navigate('Home'),
+            onPress: () => {
+              // Navigate back to main app and then to Home tab
+              navigation.navigate('Main', { screen: 'Home' });
+            },
             style: 'cancel',
           },
         ]
