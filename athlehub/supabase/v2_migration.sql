@@ -1,27 +1,45 @@
--- Create tables for Athlehub V2
+-- Athlehub V2 Migration Script
+-- Run this script to upgrade existing V1 database to V2
 
--- Users table (extends Supabase auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  username TEXT UNIQUE,
-  avatar_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- 1. Update sports table with new columns
+ALTER TABLE public.sports
+ADD COLUMN IF NOT EXISTS max_players_per_team INTEGER DEFAULT 11,
+ADD COLUMN IF NOT EXISTS min_players_per_team INTEGER DEFAULT 1,
+ADD COLUMN IF NOT EXISTS supports_sets BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS default_match_duration INTEGER;
 
--- Sports table with enhanced configuration
-CREATE TABLE IF NOT EXISTS public.sports (
-  id SERIAL PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  icon TEXT,
-  max_players_per_team INTEGER DEFAULT 11,
-  min_players_per_team INTEGER DEFAULT 1,
-  supports_sets BOOLEAN DEFAULT false,
-  default_match_duration INTEGER, -- in minutes
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- 2. Update existing sports data
+UPDATE public.sports SET
+  max_players_per_team = 5, min_players_per_team = 1, supports_sets = false, default_match_duration = 48
+WHERE name = 'Basketball';
 
--- Locations table for courts/fields
+UPDATE public.sports SET
+  max_players_per_team = 11, min_players_per_team = 1, supports_sets = false, default_match_duration = 90
+WHERE name = 'Football';
+
+UPDATE public.sports SET
+  max_players_per_team = 2, min_players_per_team = 1, supports_sets = true, default_match_duration = 60
+WHERE name = 'Badminton';
+
+UPDATE public.sports SET
+  max_players_per_team = 2, min_players_per_team = 1, supports_sets = true, default_match_duration = 45
+WHERE name = 'Table Tennis';
+
+UPDATE public.sports SET
+  max_players_per_team = 6, min_players_per_team = 1, supports_sets = true, default_match_duration = 90
+WHERE name = 'Volleyball';
+
+-- 3. Add new columns to matches table
+ALTER TABLE public.matches
+ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES public.locations(id),
+ADD COLUMN IF NOT EXISTS match_type TEXT DEFAULT 'single' CHECK (match_type IN ('single', 'set_based', 'tournament')),
+ADD COLUMN IF NOT EXISTS match_mode TEXT DEFAULT 'past_entry' CHECK (match_mode IN ('real_time', 'past_entry')),
+ADD COLUMN IF NOT EXISTS competitive_mode BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS match_duration INTEGER,
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed' CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
+ADD COLUMN IF NOT EXISTS sets_data JSONB;
+
+-- 4. Create new tables
 CREATE TABLE IF NOT EXISTS public.locations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -33,7 +51,6 @@ CREATE TABLE IF NOT EXISTS public.locations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Players table for individual player tracking
 CREATE TABLE IF NOT EXISTS public.players (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -44,39 +61,6 @@ CREATE TABLE IF NOT EXISTS public.players (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Enhanced matches table
-CREATE TABLE IF NOT EXISTS public.matches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  sport_id INTEGER REFERENCES public.sports(id) NOT NULL,
-  location_id UUID REFERENCES public.locations(id),
-
-  -- Match configuration
-  match_type TEXT NOT NULL CHECK (match_type IN ('single', 'set_based', 'tournament')),
-  match_mode TEXT NOT NULL CHECK (match_mode IN ('real_time', 'past_entry')),
-  competitive_mode BOOLEAN DEFAULT false,
-
-  -- Team information
-  team_a_name TEXT NOT NULL,
-  team_b_name TEXT NOT NULL,
-  team_a_score INTEGER NOT NULL,
-  team_b_score INTEGER NOT NULL,
-
-  -- Match timing
-  match_duration INTEGER, -- in minutes
-  match_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-
-  -- Match status
-  status TEXT DEFAULT 'completed' CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
-
-  -- Set-based match support
-  sets_data JSONB, -- Store set scores for set-based matches
-
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Match participants table (links players to matches)
 CREATE TABLE IF NOT EXISTS public.match_participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   match_id UUID REFERENCES public.matches(id) ON DELETE CASCADE,
@@ -87,7 +71,6 @@ CREATE TABLE IF NOT EXISTS public.match_participants (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Player statistics table
 CREATE TABLE IF NOT EXISTS public.player_stats (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   match_id UUID REFERENCES public.matches(id) ON DELETE CASCADE,
@@ -129,11 +112,8 @@ CREATE TABLE IF NOT EXISTS public.player_stats (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for foreign keys to improve query performance
-CREATE INDEX IF NOT EXISTS idx_matches_user_id ON public.matches(user_id);
-CREATE INDEX IF NOT EXISTS idx_matches_sport_id ON public.matches(sport_id);
+-- 5. Create new indexes
 CREATE INDEX IF NOT EXISTS idx_matches_location_id ON public.matches(location_id);
-CREATE INDEX IF NOT EXISTS idx_matches_match_date ON public.matches(match_date DESC);
 CREATE INDEX IF NOT EXISTS idx_match_participants_match_id ON public.match_participants(match_id);
 CREATE INDEX IF NOT EXISTS idx_match_participants_player_id ON public.match_participants(player_id);
 CREATE INDEX IF NOT EXISTS idx_player_stats_match_id ON public.player_stats(match_id);
@@ -141,50 +121,13 @@ CREATE INDEX IF NOT EXISTS idx_player_stats_player_id ON public.player_stats(pla
 CREATE INDEX IF NOT EXISTS idx_players_created_by ON public.players(created_by);
 CREATE INDEX IF NOT EXISTS idx_locations_sport_id ON public.locations(sport_id);
 
--- Insert enhanced sports data
-INSERT INTO public.sports (name, icon, max_players_per_team, min_players_per_team, supports_sets, default_match_duration) VALUES
-  ('Basketball', 'basketball', 5, 1, false, 48),
-  ('Football', 'football', 11, 1, false, 90),
-  ('Badminton', 'badminton', 2, 1, true, 60),
-  ('Table Tennis', 'table-tennis', 2, 1, true, 45),
-  ('Volleyball', 'volleyball', 6, 1, true, 90)
-ON CONFLICT (name) DO UPDATE SET
-  max_players_per_team = EXCLUDED.max_players_per_team,
-  min_players_per_team = EXCLUDED.min_players_per_team,
-  supports_sets = EXCLUDED.supports_sets,
-  default_match_duration = EXCLUDED.default_match_duration;
-
--- Set up Row Level Security (RLS)
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
+-- 6. Enable RLS on new tables
 ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_stats ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies (optimized for performance)
-CREATE POLICY "Public profiles are viewable by everyone"
-  ON public.profiles FOR SELECT USING (true);
-
-CREATE POLICY "Users can insert their own profile"
-  ON public.profiles FOR INSERT WITH CHECK ((SELECT auth.uid()) = id);
-
-CREATE POLICY "Users can update their own profile"
-  ON public.profiles FOR UPDATE USING ((SELECT auth.uid()) = id);
-
--- Matches policies (optimized for performance)
-CREATE POLICY "Matches are viewable by everyone"
-  ON public.matches FOR SELECT USING (true);
-
-CREATE POLICY "Users can insert their own matches"
-  ON public.matches FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
-
-CREATE POLICY "Users can update their own matches"
-  ON public.matches FOR UPDATE USING ((SELECT auth.uid()) = user_id);
-
-CREATE POLICY "Users can delete their own matches"
-  ON public.matches FOR DELETE USING ((SELECT auth.uid()) = user_id);
-
+-- 7. Create RLS policies for new tables
 -- Players policies
 CREATE POLICY "Players are viewable by everyone"
   ON public.players FOR SELECT USING (true);
@@ -249,16 +192,7 @@ CREATE POLICY "Users can update stats in their matches"
     )
   );
 
--- Create functions for handling timestamps
-CREATE OR REPLACE FUNCTION public.handle_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to update player total matches count
+-- 8. Create new functions and triggers
 CREATE OR REPLACE FUNCTION public.update_player_match_count()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -278,15 +212,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for updated_at
-CREATE TRIGGER handle_updated_at
-BEFORE UPDATE ON public.profiles
-FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-CREATE TRIGGER handle_updated_at
-BEFORE UPDATE ON public.matches
-FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
+-- Create triggers for updated_at on new tables
 CREATE TRIGGER handle_updated_at
 BEFORE UPDATE ON public.players
 FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
@@ -302,10 +228,7 @@ FOR EACH ROW
 WHEN (NEW.status = 'completed' AND OLD.status != 'completed')
 EXECUTE PROCEDURE public.update_player_match_count();
 
--- Analyze tables to update statistics for query planner
-ANALYZE public.profiles;
-ANALYZE public.matches;
-ANALYZE public.sports;
+-- 9. Analyze tables to update statistics for query planner
 ANALYZE public.players;
 ANALYZE public.locations;
 ANALYZE public.match_participants;

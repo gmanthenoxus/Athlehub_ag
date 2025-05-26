@@ -58,7 +58,8 @@ export default function SelectSportScreen({ navigation }) {
   };
 
   const handleSelectSport = (sport) => {
-    navigation.navigate('TeamSetup', { sport });
+    // Navigate to enhanced match setup for V2 features
+    navigation.navigate('EnhancedMatchSetup', { sport });
   };
 
   const renderSportItem = ({ item }) => (

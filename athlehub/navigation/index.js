@@ -17,6 +17,9 @@ import ProfileScreen from '../screens/ProfileScreen';
 import SelectSportScreen from '../screens/match/SelectSportScreen';
 import TeamSetupScreen from '../screens/match/TeamSetupScreen';
 import ScoreInputScreen from '../screens/match/ScoreInputScreen';
+import EnhancedMatchSetupScreen from '../screens/match/EnhancedMatchSetupScreen';
+import LiveMatchScreen from '../screens/match/LiveMatchScreen';
+import PastMatchEntryScreen from '../screens/match/PastMatchEntryScreen';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,19 +37,34 @@ const AuthNavigator = () => (
 // Match Creation Flow Navigator
 const MatchCreationNavigator = () => (
   <Stack.Navigator>
-    <Stack.Screen 
-      name="SelectSport" 
-      component={SelectSportScreen} 
+    <Stack.Screen
+      name="SelectSport"
+      component={SelectSportScreen}
       options={{ title: 'Select Sport' }}
     />
-    <Stack.Screen 
-      name="TeamSetup" 
-      component={TeamSetupScreen} 
+    <Stack.Screen
+      name="EnhancedMatchSetup"
+      component={EnhancedMatchSetupScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="LiveMatch"
+      component={LiveMatchScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="PastMatchEntry"
+      component={PastMatchEntryScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="TeamSetup"
+      component={TeamSetupScreen}
       options={{ title: 'Team Setup' }}
     />
-    <Stack.Screen 
-      name="ScoreInput" 
-      component={ScoreInputScreen} 
+    <Stack.Screen
+      name="ScoreInput"
+      component={ScoreInputScreen}
       options={{ title: 'Enter Score' }}
     />
   </Stack.Navigator>
