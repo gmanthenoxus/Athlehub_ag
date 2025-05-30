@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import LocationSelector from './LocationSelector';
 
 const SportConfig = ({ sport, onConfigChange, config = {} }) => {
   if (!sport) return null;
@@ -121,7 +122,7 @@ const SportConfig = ({ sport, onConfigChange, config = {} }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Configure {sport.name} Match</Text>
-      
+
       <ConfigSection
         title="Match Type"
         options={currentConfig.matchTypes}
@@ -146,6 +147,17 @@ const SportConfig = ({ sport, onConfigChange, config = {} }) => {
         keyName="scoringSystem"
       />
 
+      {/* Location Selection */}
+      <View style={styles.configSection}>
+        <Text style={styles.sectionTitle}>Location</Text>
+        <LocationSelector
+          sport={sport}
+          selectedLocation={config.location}
+          onLocationSelect={(location) => onConfigChange({ ...config, location })}
+          placeholder={`Search for ${sport.name.toLowerCase()} courts...`}
+        />
+      </View>
+
       {/* Competitive Mode Toggle */}
       <View style={styles.configSection}>
         <Text style={styles.sectionTitle}>Match Mode</Text>
@@ -154,9 +166,9 @@ const SportConfig = ({ sport, onConfigChange, config = {} }) => {
             styles.optionButton,
             config.competitiveMode && styles.selectedOption
           ]}
-          onPress={() => onConfigChange({ 
-            ...config, 
-            competitiveMode: !config.competitiveMode 
+          onPress={() => onConfigChange({
+            ...config,
+            competitiveMode: !config.competitiveMode
           })}
         >
           <View style={styles.optionContent}>
@@ -173,10 +185,10 @@ const SportConfig = ({ sport, onConfigChange, config = {} }) => {
               Strict rules, player numbers required, stats tracked
             </Text>
           </View>
-          <Ionicons 
-            name={config.competitiveMode ? "toggle" : "toggle-outline"} 
-            size={24} 
-            color={config.competitiveMode ? "#007AFF" : "#8E8E93"} 
+          <Ionicons
+            name={config.competitiveMode ? "toggle" : "toggle-outline"}
+            size={24}
+            color={config.competitiveMode ? "#007AFF" : "#8E8E93"}
           />
         </TouchableOpacity>
       </View>

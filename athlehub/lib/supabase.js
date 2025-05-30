@@ -303,6 +303,16 @@ class SupabaseTable {
     return this;
   }
 
+  limit(count) {
+    this.filters.push(`limit=${count}`);
+    return this;
+  }
+
+  not(column, operator, value) {
+    this.filters.push(`${column}=not.${operator}.${value}`);
+    return this;
+  }
+
   order(column, options = {}) {
     const direction = options.ascending === false ? 'desc' : 'asc';
     this.filters.push(`order=${column}.${direction}`);

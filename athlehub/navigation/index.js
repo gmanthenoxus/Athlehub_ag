@@ -11,15 +11,25 @@ import SignUpScreen from '../screens/auth/SignUpScreen';
 // Main App Screens
 import HomeScreen from '../screens/HomeScreen';
 import MatchHistoryScreen from '../screens/MatchHistoryScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileScreen from '../screens/PlayerProfileScreen';
 
 // Match Creation Flow Screens
 import SelectSportScreen from '../screens/match/SelectSportScreen';
 import TeamSetupScreen from '../screens/match/TeamSetupScreen';
 import ScoreInputScreen from '../screens/match/ScoreInputScreen';
 import EnhancedMatchSetupScreen from '../screens/match/EnhancedMatchSetupScreen';
+import MatchRulesConfigScreen from '../screens/match/MatchRulesConfigScreen';
 import LiveMatchScreen from '../screens/match/LiveMatchScreen';
 import PastMatchEntryScreen from '../screens/match/PastMatchEntryScreen';
+
+// V3 Tournament Screens
+import CreateTournamentScreen from '../screens/tournament/CreateTournamentScreen';
+import TournamentListScreen from '../screens/tournament/TournamentListScreen';
+
+// V3 Feature Screens
+import LeaderboardScreen from '../screens/LeaderboardScreen';
+import PlayerProfileScreen from '../screens/PlayerProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -102,6 +112,21 @@ const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Main" component={TabNavigator} />
     <Stack.Screen name="MatchCreation" component={MatchCreationNavigator} />
+
+    {/* Enhanced Match Setup Screens */}
+    <Stack.Screen name="EnhancedMatchSetup" component={EnhancedMatchSetupScreen} />
+    <Stack.Screen name="MatchRulesConfig" component={MatchRulesConfigScreen} />
+    <Stack.Screen name="LiveMatch" component={LiveMatchScreen} />
+    <Stack.Screen name="PastMatchEntry" component={PastMatchEntryScreen} />
+
+    {/* V3 Tournament Screens */}
+    <Stack.Screen name="CreateTournament" component={CreateTournamentScreen} />
+    <Stack.Screen name="TournamentList" component={TournamentListScreen} />
+
+    {/* V3 Feature Screens */}
+    <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+    <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+    <Stack.Screen name="Settings" component={SettingsScreen} />
   </Stack.Navigator>
 );
 

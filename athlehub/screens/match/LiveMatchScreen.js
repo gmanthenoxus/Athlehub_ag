@@ -8,10 +8,11 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../lib/supabase';
 
 const LiveMatchScreen = ({ navigation, route }) => {
   const { match, sport, config, players } = route.params;
-  
+
   const [gameTime, setGameTime] = useState(0); // in seconds
   const [isRunning, setIsRunning] = useState(false);
   const [teamAScore, setTeamAScore] = useState(0);
@@ -66,16 +67,58 @@ const LiveMatchScreen = ({ navigation, route }) => {
       'Are you sure you want to end this match?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'End Match', 
+        {
+          text: 'End Match',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Save final scores and navigate to match summary
-            navigation.navigate('Main', { screen: 'Matches' });
-          }
+          onPress: saveMatchAndExit
         }
       ]
     );
+  };
+
+  const saveMatchAndExit = async () => {
+    try {
+      // Save the final match scores to database
+      const finalMatchData = {
+        user_id: match.user_id,
+        sport_id: match.sport_id,
+        team_a_name: match.team_a_name,
+        team_b_name: match.team_b_name,
+        team_a_score: teamAScore,
+        team_b_score: teamBScore,
+        match_date: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('matches')
+        .insert([finalMatchData]);
+
+      if (error) {
+        console.error('Error saving match:', error);
+        Alert.alert('Error', 'Failed to save match scores. Please try again.');
+        return;
+      }
+
+      Alert.alert(
+        'Match Saved!',
+        `Final Score: ${match.team_a_name} ${teamAScore} - ${teamBScore} ${match.team_b_name}`,
+        [
+          {
+            text: 'View History',
+            onPress: () => navigation.navigate('Main', { screen: 'Matches' }),
+          },
+          {
+            text: 'Home',
+            onPress: () => navigation.navigate('Main', { screen: 'Home' }),
+            style: 'cancel',
+          },
+        ]
+      );
+
+    } catch (error) {
+      console.error('Error saving match:', error);
+      Alert.alert('Error', 'Failed to save match. Please try again.');
+    }
   };
 
   return (
@@ -96,10 +139,10 @@ const LiveMatchScreen = ({ navigation, route }) => {
         <Text style={styles.timerText}>{formatTime(gameTime)}</Text>
         <View style={styles.timerControls}>
           <TouchableOpacity style={styles.timerButton} onPress={toggleTimer}>
-            <Ionicons 
-              name={isRunning ? "pause" : "play"} 
-              size={24} 
-              color="white" 
+            <Ionicons
+              name={isRunning ? "pause" : "play"}
+              size={24}
+              color="white"
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.timerButton} onPress={resetTimer}>
@@ -115,30 +158,30 @@ const LiveMatchScreen = ({ navigation, route }) => {
           <Text style={styles.teamName}>{match.team_a_name}</Text>
           <Text style={styles.score}>{teamAScore}</Text>
           <View style={styles.scoreControls}>
-            <TouchableOpacity 
-              style={styles.scoreButton} 
+            <TouchableOpacity
+              style={styles.scoreButton}
               onPress={() => addScore('A', 1)}
             >
               <Text style={styles.scoreButtonText}>+1</Text>
             </TouchableOpacity>
             {sport.name === 'Basketball' && (
               <>
-                <TouchableOpacity 
-                  style={styles.scoreButton} 
+                <TouchableOpacity
+                  style={styles.scoreButton}
                   onPress={() => addScore('A', 2)}
                 >
                   <Text style={styles.scoreButtonText}>+2</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.scoreButton} 
+                <TouchableOpacity
+                  style={styles.scoreButton}
                   onPress={() => addScore('A', 3)}
                 >
                   <Text style={styles.scoreButtonText}>+3</Text>
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity 
-              style={[styles.scoreButton, styles.subtractButton]} 
+            <TouchableOpacity
+              style={[styles.scoreButton, styles.subtractButton]}
               onPress={() => subtractScore('A', 1)}
             >
               <Text style={styles.scoreButtonText}>-1</Text>
@@ -155,30 +198,30 @@ const LiveMatchScreen = ({ navigation, route }) => {
           <Text style={styles.teamName}>{match.team_b_name}</Text>
           <Text style={styles.score}>{teamBScore}</Text>
           <View style={styles.scoreControls}>
-            <TouchableOpacity 
-              style={styles.scoreButton} 
+            <TouchableOpacity
+              style={styles.scoreButton}
               onPress={() => addScore('B', 1)}
             >
               <Text style={styles.scoreButtonText}>+1</Text>
             </TouchableOpacity>
             {sport.name === 'Basketball' && (
               <>
-                <TouchableOpacity 
-                  style={styles.scoreButton} 
+                <TouchableOpacity
+                  style={styles.scoreButton}
                   onPress={() => addScore('B', 2)}
                 >
                   <Text style={styles.scoreButtonText}>+2</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.scoreButton} 
+                <TouchableOpacity
+                  style={styles.scoreButton}
                   onPress={() => addScore('B', 3)}
                 >
                   <Text style={styles.scoreButtonText}>+3</Text>
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity 
-              style={[styles.scoreButton, styles.subtractButton]} 
+            <TouchableOpacity
+              style={[styles.scoreButton, styles.subtractButton]}
               onPress={() => subtractScore('B', 1)}
             >
               <Text style={styles.scoreButtonText}>-1</Text>

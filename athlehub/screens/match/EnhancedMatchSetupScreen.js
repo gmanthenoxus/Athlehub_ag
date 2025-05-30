@@ -15,11 +15,11 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 const EnhancedMatchSetupScreen = ({ navigation, route }) => {
-  const { sport } = route.params;
+  const { sport, initialConfig, startAtStep, teamAName: initialTeamAName, teamBName: initialTeamBName } = route.params;
   const { user } = useAuth();
 
-  const [currentStep, setCurrentStep] = useState(0);
-  const [matchConfig, setMatchConfig] = useState({
+  const [currentStep, setCurrentStep] = useState(startAtStep || 0);
+  const [matchConfig, setMatchConfig] = useState(initialConfig || {
     matchType: 'single',
     teamSize: '5v5',
     scoringSystem: 'standard',
@@ -27,8 +27,8 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
     matchMode: 'real_time', // or 'past_entry'
   });
 
-  const [teamAName, setTeamAName] = useState('Team A');
-  const [teamBName, setTeamBName] = useState('Team B');
+  const [teamAName, setTeamAName] = useState(initialTeamAName || 'Team A');
+  const [teamBName, setTeamBName] = useState(initialTeamBName || 'Team B');
   const [teamAPlayers, setTeamAPlayers] = useState([]);
   const [teamBPlayers, setTeamBPlayers] = useState([]);
   const [suggestedPlayers, setSuggestedPlayers] = useState([]);
@@ -86,6 +86,19 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
       return;
     }
 
+    // After Match Mode step, navigate to Rules Configuration
+    if (currentStep === 1) {
+      navigation.navigate('MatchRulesConfig', {
+        sport,
+        matchConfig,
+        teamAName,
+        teamBName,
+        returnTo: 'EnhancedMatchSetup',
+        nextStep: 2, // Continue to Players step
+      });
+      return;
+    }
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -93,9 +106,11 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
     }
   };
 
-  const prevStep = () => {
+  const previousStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else {
+      navigation.goBack();
     }
   };
 
@@ -221,6 +236,7 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
             maxPlayersPerTeam={getMaxPlayersPerTeam()}
             competitiveMode={matchConfig.competitiveMode}
             suggestedPlayers={suggestedPlayers}
+            location={matchConfig.location}
           />
         );
 
@@ -258,6 +274,15 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
               </Text>
             </View>
 
+            {matchConfig.location && (
+              <View style={styles.reviewSection}>
+                <Text style={styles.reviewLabel}>Location:</Text>
+                <Text style={styles.reviewValue}>
+                  {matchConfig.location.name}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.reviewSection}>
               <Text style={styles.reviewLabel}>Team A Players:</Text>
               <Text style={styles.reviewValue}>
@@ -283,11 +308,11 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={previousStep}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Setup Match</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.stepIndicator}>{currentStep + 1} of {steps.length}</Text>
       </View>
 
       {/* Progress Indicator */}
@@ -320,25 +345,24 @@ const EnhancedMatchSetupScreen = ({ navigation, route }) => {
         {renderStepContent()}
       </ScrollView>
 
-      {/* Navigation Buttons */}
-      <View style={styles.navigationContainer}>
-        {currentStep > 0 && (
-          <TouchableOpacity style={styles.backButton} onPress={prevStep}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        )}
-
+      {/* Floating Action Button */}
+      <View style={styles.fabContainer}>
         <TouchableOpacity
           style={[
-            styles.nextButton,
-            !validateCurrentStep() && styles.nextButtonDisabled
+            styles.fab,
+            !validateCurrentStep() && styles.fabDisabled
           ]}
           onPress={nextStep}
           disabled={loading || !validateCurrentStep()}
         >
-          <Text style={styles.nextButtonText}>
-            {currentStep === steps.length - 1 ? 'Start Match' : 'Next'}
+          <Text style={styles.fabText}>
+            {currentStep === steps.length - 1 ? 'Start Match' : 'Continue'}
           </Text>
+          <Ionicons
+            name={currentStep === steps.length - 1 ? 'play' : 'arrow-forward'}
+            size={20}
+            color="white"
+          />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -361,6 +385,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  stepIndicator: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
   progressContainer: {
     flexDirection: 'row',
@@ -458,37 +487,35 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-  navigationContainer: {
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    left: 20,
+  },
+  fab: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
     alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#8E8E93',
-  },
-  nextButton: {
-    flex: 2,
-    padding: 16,
+    justifyContent: 'center',
     backgroundColor: '#007AFF',
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  nextButtonDisabled: {
+  fabDisabled: {
     backgroundColor: '#E5E5EA',
+    shadowOpacity: 0.1,
   },
-  nextButtonText: {
+  fabText: {
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+    marginRight: 8,
   },
 });
 

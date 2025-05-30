@@ -10,19 +10,37 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import LocationService from '../../services/locationService';
 
-const PlayerManager = ({ 
-  teamAPlayers = [], 
-  teamBPlayers = [], 
-  onPlayersChange, 
+const PlayerManager = ({
+  teamAPlayers = [],
+  teamBPlayers = [],
+  onPlayersChange,
   maxPlayersPerTeam = 5,
   competitiveMode = false,
-  suggestedPlayers = []
+  suggestedPlayers = [],
+  location = null
 }) => {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerTeam, setNewPlayerTeam] = useState('team_a');
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+
+  useEffect(() => {
+    loadLocationSuggestions();
+  }, [location]);
+
+  const loadLocationSuggestions = async () => {
+    if (location && location.id) {
+      try {
+        const suggestions = await LocationService.getSuggestedPlayersForLocation(location.id);
+        setLocationSuggestions(suggestions);
+      } catch (error) {
+        console.error('Error loading location suggestions:', error);
+      }
+    }
+  };
 
   const addPlayer = () => {
     if (!newPlayerName.trim()) {
@@ -36,18 +54,18 @@ const PlayerManager = ({
     }
 
     const currentTeamPlayers = newPlayerTeam === 'team_a' ? teamAPlayers : teamBPlayers;
-    
+
     if (currentTeamPlayers.length >= maxPlayersPerTeam) {
       Alert.alert('Error', `Maximum ${maxPlayersPerTeam} players per team`);
       return;
     }
 
-    // Check for duplicate jersey numbers in competitive mode
+    // Check for duplicate jersey numbers in competitive mode (only within the same team)
     if (competitiveMode && newPlayerNumber) {
-      const allPlayers = [...teamAPlayers, ...teamBPlayers];
-      const numberExists = allPlayers.some(p => p.jerseyNumber === newPlayerNumber);
+      const currentTeamPlayers = newPlayerTeam === 'team_a' ? teamAPlayers : teamBPlayers;
+      const numberExists = currentTeamPlayers.some(p => p.jerseyNumber === newPlayerNumber);
       if (numberExists) {
-        Alert.alert('Error', 'This jersey number is already taken');
+        Alert.alert('Error', 'This jersey number is already taken by a teammate');
         return;
       }
     }
@@ -86,7 +104,7 @@ const PlayerManager = ({
 
   const addSuggestedPlayer = (suggestedPlayer, team) => {
     const currentTeamPlayers = team === 'team_a' ? teamAPlayers : teamBPlayers;
-    
+
     if (currentTeamPlayers.length >= maxPlayersPerTeam) {
       Alert.alert('Error', `Maximum ${maxPlayersPerTeam} players per team`);
       return;
@@ -131,7 +149,7 @@ const PlayerManager = ({
           {players.length}/{maxPlayersPerTeam}
         </Text>
       </View>
-      
+
       <View style={styles.playersContainer}>
         {players.map((player) => (
           <PlayerCard
@@ -141,7 +159,7 @@ const PlayerManager = ({
             onRemove={removePlayer}
           />
         ))}
-        
+
         {players.length < maxPlayersPerTeam && (
           <TouchableOpacity
             style={styles.addPlayerButton}
@@ -156,14 +174,34 @@ const PlayerManager = ({
         )}
       </View>
 
-      {/* Suggested Players */}
+      {/* Location-based Suggested Players */}
+      {locationSuggestions.length > 0 && players.length < maxPlayersPerTeam && (
+        <View style={styles.suggestedSection}>
+          <Text style={styles.suggestedTitle}>
+            Players at {location?.name || 'this location'}:
+          </Text>
+          <View style={styles.suggestedPlayers}>
+            {locationSuggestions.slice(0, 3).map((suggested, index) => (
+              <TouchableOpacity
+                key={`location-${index}`}
+                style={styles.suggestedPlayer}
+                onPress={() => addSuggestedPlayer(suggested, team)}
+              >
+                <Text style={styles.suggestedPlayerName}>{suggested.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* General Suggested Players */}
       {suggestedPlayers.length > 0 && players.length < maxPlayersPerTeam && (
         <View style={styles.suggestedSection}>
-          <Text style={styles.suggestedTitle}>Suggested Players:</Text>
+          <Text style={styles.suggestedTitle}>Recent Players:</Text>
           <View style={styles.suggestedPlayers}>
             {suggestedPlayers.slice(0, 3).map((suggested) => (
               <TouchableOpacity
-                key={suggested.id}
+                key={suggested.id || suggested.name}
                 style={styles.suggestedPlayer}
                 onPress={() => addSuggestedPlayer(suggested, team)}
               >
@@ -179,14 +217,14 @@ const PlayerManager = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Team Players</Text>
-      
+
       <TeamSection
         title="Team A"
         players={teamAPlayers}
         team="team_a"
         teamColor="#007AFF"
       />
-      
+
       <TeamSection
         title="Team B"
         players={teamBPlayers}
@@ -210,7 +248,7 @@ const PlayerManager = ({
               <Text style={styles.saveButton}>Add</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.modalContent}>
             <Text style={styles.inputLabel}>Player Name</Text>
             <TextInput
@@ -220,7 +258,7 @@ const PlayerManager = ({
               placeholder="Enter player name"
               autoFocus
             />
-            
+
             {competitiveMode && (
               <>
                 <Text style={styles.inputLabel}>Jersey Number</Text>
@@ -233,7 +271,7 @@ const PlayerManager = ({
                 />
               </>
             )}
-            
+
             <Text style={styles.inputLabel}>Team</Text>
             <View style={styles.teamSelector}>
               <TouchableOpacity
@@ -250,7 +288,7 @@ const PlayerManager = ({
                   Team A
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.teamOption,

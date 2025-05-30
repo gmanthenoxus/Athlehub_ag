@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Button, Text, Card } from 'react-native-elements';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -76,6 +76,37 @@ export default function HomeScreen() {
             }
           />
         </Card>
+
+        {/* V3 Quick Actions */}
+        <Card containerStyle={styles.card}>
+          <Card.Title>Compete & Track Progress</Card.Title>
+          <Card.Divider />
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => navigation.navigate('TournamentList')}
+            >
+              <Ionicons name="trophy-outline" size={32} color="#007AFF" />
+              <Text style={styles.quickActionText}>Tournaments</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => navigation.navigate('Leaderboard')}
+            >
+              <Ionicons name="podium-outline" size={32} color="#007AFF" />
+              <Text style={styles.quickActionText}>Leaderboards</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => navigation.navigate('PlayerProfile')}
+            >
+              <Ionicons name="medal-outline" size={32} color="#007AFF" />
+              <Text style={styles.quickActionText}>My Profile</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
       </View>
     </ScrollView>
   );
@@ -127,5 +158,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#4361ee',
     borderRadius: 10,
     marginTop: 10,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  quickActionButton: {
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    minWidth: 80,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
